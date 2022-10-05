@@ -15,6 +15,6 @@ def wait_heartbeat(master):
     print(msg)
 
 # create a mavlink serial instance
-master = mavutil.mavlink_connection('udp:localhost:14550')
+master = mavutil.mavlink_connection('udpin:192.168.2.6:14550')
 
 wait_heartbeat(master)
