@@ -38,7 +38,7 @@ udp_server_socket.bind((localIP, localPort)) # Bind to address and port
 # =========================
 
 
-def meters_per_sample(ping_message, v_sound=340):
+def meters_per_sample(ping_message, v_sound=1480):
     """ Returns the target distance per sample, in meters. 
     
     @param: 'ping_message' is the message being analysed.
@@ -68,9 +68,8 @@ while True:
     print(sample_distance)  # DEBUG
     Humbi = []
     for i in range(len(data.msg_data)):
-
-    	Humbi.append(data.msg_data[i] * meters_per_sample(data))
-    print(Humbi) #HO -- TESTING
+        Humbi.append(data.msg_data[i] * meters_per_sample(data))
+    print('%.03f' % Humbi) #HO -- TESTING
     udp_server_socket.sendto(bytearray(struct.pack("f", max(Humbi))), client_address)
     #udp_server_socket.sendto(bytearray(struct.pack("f", sample_distance)), client_address)
     

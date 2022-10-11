@@ -1,5 +1,6 @@
 from ctypes import sizeof
 from brping import Ping360
+import numpy as np
 import time
 import socket
 import struct
@@ -24,21 +25,17 @@ bufferSize = 1024
 udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM) # Create datagram socket
 udp_server_socket.bind((localIP, localPort)) # Bind to address and port
 
-
 # ==========================
 # === CONFIGURATION DATA ===
 # ==========================
-
 
 # set the speed of sound to use for distance calculations to
 # 1450000 mm/s (1450 m/s)
 # ping360.set_speed_of_sound(1450000)
 
-
 # =========================
 # === SERVICE FUNCTIONS ===
 # =========================
-
 
 def meters_per_sample(ping_message, v_sound=1480):
     """ Returns the target distance per sample, in meters. 
@@ -51,7 +48,6 @@ def meters_per_sample(ping_message, v_sound=1480):
     # time of flight includes there and back, so divide by 2
     return v_sound * ping_message.sample_period * 12.5e-9
 
-
 # ====================
 # === SERVICE LOOP ===
 # ====================
@@ -63,33 +59,53 @@ while True:
     client_address = bytesAddressPair[1]
 
     # Get data from the Ping360
-    data = ping360.transmitAngle(100)
+    data = ping360.transmitAngle(300) # 300 right
     # distance per sample
     mps = meters_per_sample(data)
 
+    # Initializing lists
     Distances = []
-    decimals = []
+    Intensity = []
 
+    # Computing distances and intensities of the different samples
     for i in range(len(data.msg_data)):
         Distances.append(i * mps)
-        #if type(data.msg_data[i]) == int:
-        decimals.append(data.msg_data[i])
-        #else:
-            #decimals.append(0)
-    print(len(Distances)) # DEBUG
-    print(len(decimals))
+        Intensity.append(data.msg_data[i])
 
-    with open('Intensities.csv', 'w') as file:
+    # Create a CSV file of distances and intensities
+    with open('Intensities7.csv', 'w') as file:
         writer = csv.writer(file)
         for i in range(len(Distances)):
-            writer.writerow([Distances[i], decimals[i]])
+            writer.writerow([Distances[i], Intensity[i]])
 
+    # Converting lists to arrays
+    Array_Distances = np.array(Distances)
+    Array_Intensity = np.array(Intensity)
 
+    # Below 0.75m reject all samples
+    Limit = 0.75
 
+    ## Finding the index of the 0.75m distance
 
+        # calculate the difference array
+    difference_array = np.absolute(Array_Distances - Limit)
 
+        # find the index of minimum element from the array
+    index_Limit = difference_array.argmin()
 
+    # Set all intensity values at a distance below 0.75m to zero
+    for i in range(index_Limit):
+        Array_Intensity[i] = 0.0
 
-    udp_server_socket.sendto(bytearray(struct.pack("f", 1)), client_address)
-    #udp_server_socket.sendto(bytearray(struct.pack("f", sample_distance)), client_address)
+    # Find index of the true maximum return
+    index_max = Array_Intensity.argmax()
+
+    # Store intensity and distance of strongest return
+    Intensity_max_return = Array_Intensity[index_max]
+    Distance_max_return = Array_Distances[index_max]
+
+    print(Intensity_max_return)
+    print(Distance_max_return)
+
+    udp_server_socket.sendto(bytearray(struct.pack("f",  Distance_max_return)), client_address)
     
