@@ -114,6 +114,25 @@ while True:
 
     udp_server_socket.sendto(bytearray(struct.pack("f",  Distance_max_return)), client_address)
     
+
+    
+    
+# =========================================================================================================================================================
+# =================================================================== UDP_Client ==========================================================================
+# ========================================================================================================================================================= 
+
+msgFromClient = "Hello UDP Server"
+bytesToSend = str.encode(msgFromClient)
+serverAddressPort = ("0.0.0.0", 42069)
+bufferSize = 1024
+
+UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+
+def UDP_Client():
+   
+    UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+    msgFromServer = UDPClientSocket.recvfrom(bufferSize)
+    print("Message from server: ", struct.unpack('f', msgFromServer[0])) 
     
 # =========================================================================================================================================================
 # =================================================================== Koda Initialization =================================================================
@@ -209,13 +228,13 @@ time.sleep(3)
         
 # Take first step   
 set_target_fordward(350,0,500,0)
-# Call Client 
+# UDP_Client()
 # Take second step      
 set_target_fordward(350,0,500,0)
-# Call Client 
+# UDP_Client()
 # Take third step   
 set_target_fordward(350,0,500,0)
-# Call Client 
+# UDP_Client()
 # Come back to the surface 
 set_target_depth(0.0)
 
