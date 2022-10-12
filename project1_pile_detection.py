@@ -177,46 +177,49 @@ DEPTH_HOLD_MODE = master.mode_mapping()[DEPTH_HOLD]
 while not master.wait_heartbeat().custom_mode == DEPTH_HOLD_MODE:
     master.set_mode(DEPTH_HOLD)
 
-# set a depth target
-set_target_depth(-100.0)
-
-time.sleep(0)
-
-# Can probably take this out and just have it after it comes to the surface 
-# clean up (disarm) at the end
-master.arducopter_disarm()
-master.motors_disarmed_wait()
-
 # =========================================================================================================================================================
 # =================================================================== Fordward ============================================================================
 # ========================================================================================================================================================= 
+def set_target_fordward(X,Y,Z,R):
+    # Creates a time variable from EPOCH
+    TIME = time.time()
 
-# Creates a time variable from EPOCH
-TIME = time.time()
+    # While 4 seconds have not passed go fordward
+    while (time.time() < TIME + 2):
+        master.mav.manual_control_send(
+            master.target_system,
+            X, #350,  # x
+            Y, #0,    # y
+            Z, #500,  # z
+            R, #0,    # r
+            0)        # buttons
 
-# While 4 seconds have not passed go fordward
-while (time.time() < TIME + 4):
-    master.mav.manual_control_send(
-        master.target_system,
-        350,  # x
-        0,    # y
-        500,  # z
-        0,    # r
-        0)    # buttons
-
-    #time.sleep(0.75)
+        #time.sleep(0.75)
 
 # There was something for the buttons so i Deleted it 
 
 
 # =========================================================================================================================================================
-# =================================================================== Surface =============================================================================
+# =================================================================== Mission =============================================================================
 # ========================================================================================================================================================= 
 
+# Set a depth to hold first 
+set_target_depth(-75.0)
+time.sleep(3)
+        
+# Take first step   
+set_target_fordward(350,0,500,0)
+# Call Client 
+# Take second step      
+set_target_fordward(350,0,500,0)
+# Call Client 
+# Take third step   
+set_target_fordward(350,0,500,0)
+# Call Client 
 # Come back to the surface 
 set_target_depth(0.0)
-        
+
 # Disarm the vehicle at the end of the run 
 master.arducopter_disarm()
 master.motors_disarmed_wait()
-
+      
