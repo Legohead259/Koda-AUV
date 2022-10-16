@@ -73,7 +73,7 @@ while True:
         Intensity.append(data.msg_data[i])
 
     # Create a CSV file of distances and intensities
-    with open('Intensities7.csv', 'w') as file:
+    with open('Intensities13.csv', 'w') as file:
         writer = csv.writer(file)
         for i in range(len(Distances)):
             writer.writerow([Distances[i], Intensity[i]])
