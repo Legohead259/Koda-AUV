@@ -2,12 +2,12 @@ import socket
 
 msgFromClient = "Hello UDP Server"
 bytesToSend = str.encode(msgFromClient)
-serverAddressPort = ("0.0.0.0", 20001)
+serverAddressPort = ("192.168.2.2", 42069)
 bufferSize = 1024
 
-UDPClientSocket = socket.socket(family=AF_INET, type=socket.SOCK_DGRAM)
+UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
-UDPClientSocket.sendTo(bytesToSend, serverAddressPort)
+UDPClientSocket.sendto(bytesToSend, serverAddressPort)
 
 msgFromServer = UDPClientSocket.recvfrom(bufferSize)
 

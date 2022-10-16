@@ -78,7 +78,7 @@ while not master.wait_heartbeat().custom_mode == DEPTH_HOLD_MODE:
     master.set_mode(DEPTH_HOLD)
 
 # set a depth target
-set_target_depth(-100.0)
+set_target_depth(-150)
 
 time.sleep(2)
 
