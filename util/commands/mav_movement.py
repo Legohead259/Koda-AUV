@@ -6,9 +6,9 @@ CHANGELOG:
  - Version 1.0.1: Modified documentation
 """
 
-__author__      = "Braidan Duffy, Humberto Lebron-Rivera, Omar Jebari, and Erbene Castros"
+__author__      = "Braidan Duffy, Humberto Lebron-Rivera, Omar Jebari, and Erbene de Castro Maia Junior"
 __copyright__   = "Copyright 2022"
-__credits__     = ["Braidan Duffy", "Humberto Lebron-Rivera", "Omar Jebari", "Erbene Castros"]
+__credits__     = ["Braidan Duffy", "Humberto Lebron-Rivera", "Omar Jebari", "Erbene de Castro Maia Junior"]
 __license__     = "MIT"
 __version__     = "1.0.1"
 __maintainer__  = "Braidan Duffy"
