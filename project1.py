@@ -21,7 +21,6 @@ from constants import *
 from util.commands.mav_movement import send_movement_power, set_target_depth
 from util.tasks.ping_handlers import run_ping360_service
 
-
 try:
     # Wait a heartbeat before sending commands
     print("Waiting for heartbeat")
@@ -33,13 +32,12 @@ try:
 
     # Arm ArduSub autopilot and wait until confirmed
     print("Arming...")
-    master.arducopter_arm()
-    master.motors_armed_wait()
+    # master.arducopter_arm()
+    # master.motors_armed_wait()
 
     # Set DEPTH_HOLD mode
     print("Setting DEPTH_HOLD mode")
-    DEPTH_HOLD_MODE = master.mode_mapping()['ALT_HOLD']
-    while not master.wait_heartbeat().custom_mode == DEPTH_HOLD_MODE:
+    while not master.wait_heartbeat().custom_mode == 2:
         master.set_mode('ALT_HOLD')
 
     # Set desired depth

@@ -2,7 +2,7 @@
 Master container for all commands related to moving the AUV
 """
 
-from ...constants import mavutil, master, boot_time
+from constants import mavutil, master, boot_time
 import time
 
 
