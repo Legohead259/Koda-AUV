@@ -18,7 +18,7 @@ __email__       = "bduffy2018@my.fit.edu"
 __status__      = "Prototype"
 
 from constants import *
-from util.commands.mav_movement import send_movement_power, set_target_depth
+from util.commands.mav_movement import set_movement_power, set_target_depth
 from util.tasks.ping_handlers import run_ping360_service
 
 try:
@@ -32,8 +32,8 @@ try:
 
     # Arm ArduSub autopilot and wait until confirmed
     print("Arming...")
-    # master.arducopter_arm()
-    # master.motors_armed_wait()
+    master.arducopter_arm()
+    master.motors_armed_wait()
 
     # Set DEPTH_HOLD mode
     print("Setting DEPTH_HOLD mode")
@@ -45,16 +45,16 @@ try:
     set_target_depth(-125.0)
 
     print("Dive dive dive!")
-    send_movement_power(0, 0, 250, 0, 1.75) # Submerge
+    set_movement_power(0, 0, 250, 0, 1.75) # Submerge
 
     for i in range (0, 7): # Take a certain number of steps (samples)
-        send_movement_power(350, 0, 500, 0, 4) # Move forward at 1/3 speed
-        send_movement_power(0, 0, 500, 0, 1) # Stop all movement
+        set_movement_power(350, 0, 500, 0, 4) # Move forward at 1/3 speed
+        set_movement_power(0, 0, 500, 0, 1) # Stop all movement
         run_ping360_service() # Have the Ping360 collect readings
         # time.sleep(0.5) # Simulate taking readings
 
     set_target_depth(-0.0) # Set target depth to the surface
-    send_movement_power(0, 0, 750, 0, 4) # Ascend
+    set_movement_power(0, 0, 750, 0, 4) # Ascend
 
     # Safe ROV after operation completes
     master.arducopter_disarm()

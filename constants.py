@@ -1,6 +1,11 @@
 """
+Container for all constants used in the project
 
+CHANGELOG:
+ - Version 1.0.0: Initial release
 """
+
+
 
 from pymavlink import mavutil
 global master
