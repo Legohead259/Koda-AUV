@@ -3,7 +3,8 @@ import struct
 
 msgFromClient = "Hello UDP Server"
 bytesToSend = str.encode(msgFromClient)
-serverAddressPort = ("0.0.0.0", 42069)
+
+serverAddressPort = ("192.168.2.2", 42069)
 bufferSize = 1024
 
 UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
