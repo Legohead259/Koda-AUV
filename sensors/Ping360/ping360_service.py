@@ -40,16 +40,13 @@ import csv
 
 # Ping initialization
 ping360 = Ping360()
-#myPing.connect_serial("COM4", 115200)
-# For UDP
-
 ping360.connect_udp("192.168.2.182", 12345)
 
 if ping360.initialize() is False:
     print("Failed to initialize Ping!")
     exit(1)
 
-# Server intialization
+# Server initialization
 localIP = "0.0.0.0"
 localPort = 42069
 bufferSize = 1024
@@ -63,15 +60,16 @@ udp_server_socket.bind((localIP, localPort)) # Bind to address and port
 # =========================
 
 
-def meters_per_sample(ping_message, v_sound=1480):
-    """ Returns the target distance per sample, in meters. 
+def meters_per_sample(ping_message, v_sound=1500):
+    """ 
+    Returns the target distance per sample, in meters. 
     
-    @param: 'ping_message' is the message being analysed.
-    @param: 'v_sound' is the operating speed of sound [m/s]. Default 1500.
-
+    Arguments:
+        ping_message: the message being analyzed.
+        v_sound: the operating speed of sound in water [m/s]. Default 1500.
     """
-    # sample_period is in 25ns increments
-    # time of flight includes there and back, so divide by 2
+    # Sample_period is in 25ns increments
+    # Time of flight includes there and back, so divide by 2
     return v_sound * ping_message.sample_period * 12.5e-9
 
 
