@@ -5,11 +5,11 @@ myPing = Ping1D()
 #myPing.connect_serial("COM4", 115200)
 # For UDP
 
-myPing.connect_udp("192.168.2.2", 9089)
+myPing.connect_udp("192.168.2.2", 9090)
 
-# if myPing.initialize() is False:
-#     print("Failed to initialize Ping!")
-#     exit(1)
+if myPing.initialize() is False:
+    print("Failed to initialize Ping!")
+    exit(1)
 
 # set the speed of sound to use for distance calculations to
 # 1450000 mm/s (1450 m/s)
