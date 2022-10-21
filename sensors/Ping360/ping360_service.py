@@ -168,6 +168,7 @@ while True:
     to_client = {
         'dimensions': Array_Distances,
         'intensities' : Array_Intensity,
+        'likely_max_index' : index_max,
         'likely_distance' : Distance_max_return,
         'intensity_likely_distance' : Intensity_max_return
     }
