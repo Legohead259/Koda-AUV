@@ -53,7 +53,7 @@ if ping360.initialize() is False:
 # Server intialization
 localIP = "0.0.0.0"
 localPort = 42069
-bufferSize = 1024
+bufferSize = 2048
 log_dir_path = "/home/pi/Koda-AUV/Koda-AUV/data/" + date.today().strftime("%m%d%y") # Create string for log directory in MMDDYY format e.g. 102122
 log_filename = ""
 
