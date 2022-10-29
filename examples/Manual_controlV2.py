@@ -106,14 +106,14 @@ try:
 
     print("Dive dive dive!")
     send_movement_power(0, 0, 250, 0, 1.75) # Submerge
-    # time.sleep(2)
+    time.sleep(2)
     send_movement_power(50, 0, 500, 0, 2)
 
     for i in range (0, 7): # Take a certain number of steps (samples)
         send_movement_power(350, 0, 500, 0, 4) # Move forward at 1/3 speed
         send_movement_power(0, 0, 500, 0, 1) # Stop all movement
         # run_ping_service() # Have the Ping360 collect readings
-        # time.sleep(2) # Simulate taking readings
+        time.sleep(2) # Simulate taking readings
         # TODO: Call UDP client script, get data
 
     send_movement_power(0, 0, 750, 0, 4) # Ascend
