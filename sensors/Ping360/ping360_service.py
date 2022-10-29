@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 ping360_service.py: This script starts a local server that connects to the Ping360 on the AUV and handles gathering data from it.
 This script is intended to run locally on the Raspberry Pi onboard the AUV and access the Ping 360 over a UDP connection.
