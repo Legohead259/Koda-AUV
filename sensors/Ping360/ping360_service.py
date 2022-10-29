@@ -23,9 +23,9 @@ TODO:
  -  
 """
 
-__author__      = "Braidan Duffy, Humberto Lebron-Rivera, Omar Jebari, and Erbene de Castro Maia Junior"
+__author__      = "Braidan Duffy, Humberto Lebron-Rivera, Omar Jebari, and Erbene Castros"
 __copyright__   = "Copyright 2022"
-__credits__     = ["Braidan Duffy", "Humberto Lebron-Rivera", "Omar Jebari", "Erbene de Castro Maia Junior"]
+__credits__     = ["Braidan Duffy", "Humberto Lebron-Rivera", "Omar Jebari", "Erbene Castros"]
 __license__     = "MIT"
 __version__     = "1.0.0"
 __maintainer__  = "Braidan Duffy"
@@ -35,41 +35,53 @@ __status__      = "Development"
 from brping import Ping360
 import numpy as np
 import socket
-import struct
-import csv
+import pickle as pk
+from datetime import date
+from os.path import exists
 
 # Ping initialization
 ping360 = Ping360()
+#myPing.connect_serial("COM4", 115200)
+# For UDP
+
 ping360.connect_udp("192.168.2.182", 12345)
 
 if ping360.initialize() is False:
     print("Failed to initialize Ping!")
     exit(1)
 
-# Server initialization
+# Server intialization
 localIP = "0.0.0.0"
 localPort = 42069
 bufferSize = 1024
+log_dir_path = "/home/pi/Koda-AUV/Koda-AUV/data/" + date.today().strftime("%m%d%y") # Create string for log directory in MMDDYY format e.g. 102122
+log_filename = ""
 
 udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM) # Create datagram socket
 udp_server_socket.bind((localIP, localPort)) # Bind to address and port
-
 
 # =========================
 # === SERVICE FUNCTIONS ===
 # =========================
 
 
-def meters_per_sample(ping_message, v_sound=1500):
-    """ 
+def set_ping360_range(range=2, v_sound=1480):
+    """
+    """
+    _sample_period = int(range/(v_sound * ping360.get_device_data()["number_of_samples"] * 12.5e-9))
+    return ping360.set_sample_period(_sample_period)
+
+
+def meters_per_sample(ping_message, v_sound=1480):
+    """
     Returns the target distance per sample, in meters. 
     
     Arguments:
-        ping_message: the message being analyzed.
-        v_sound: the operating speed of sound in water [m/s]. Default 1500.
+        'ping_message' is the message being analysed.
+        'v_sound' is the operating speed of sound [m/s]. Default 1500.
     """
-    # Sample_period is in 25ns increments
-    # Time of flight includes there and back, so divide by 2
+    # sample_period is in 25ns increments
+    # time of flight includes there and back, so divide by 2
     return v_sound * ping_message.sample_period * 12.5e-9
 
 
@@ -81,10 +93,19 @@ def meters_per_sample(ping_message, v_sound=1500):
 while True:
     # Listen for incoming datagrams from clients
     message_address_pair = udp_server_socket.recvfrom(bufferSize)
-    client_message = message_address_pair[0]
+    client_message = pk.loads(message_address_pair[0])
     client_address = message_address_pair[1]
 
-    # TODO: Parse client configuration requests for various parameters
+    # Reading the dictionary sent by the client
+    N_samples = client_message.get("Number of samples")
+    Angle = client_message.get("Angle")
+    logging = client_message.get("Enable Logging")
+    ping360_range = client_message.get("Range")
+    readings = client_message.get("Readings")
+
+    # Configure Ping360
+    ping360.set_number_of_samples(int(readings))
+    set_ping360_range(ping360_range)
 
     # Get data from the Ping 360
     # Transmission angle is in Gradians with 0 being forward (direction of penetrator) and increasing to 399 clockwise
@@ -93,106 +114,75 @@ while True:
     # 100   -> Port
     # 200   -> Forward
     # 300   -> Starboard
-    ping_data = ping360.transmitAngle(100)
+    ping_data = ping360.transmitAngle(Angle)
     # distance per sample
     mps = meters_per_sample(ping_data)
 
-    # TODO: Initialize these variables as np arrays instead of lists
+    # Initializing numpy arrays
+    Array_Distances = np.zeros((N_samples, len(ping_data.msg_data)))
+    Array_Intensity = np.zeros((N_samples, len(ping_data.msg_data)))
+    index_max = np.zeros(N_samples)
+    Intensity_max_return = np.zeros(N_samples)
+    Distance_max_return = np.zeros(N_samples)
 
-    # Initializing lists
-    distances = []
-    intensities = []
+    for n in range(N_samples):
+        ping_data = ping360.transmitAngle(Angle)
 
-    # Compute distances and intensities of the different samples
-    for i in range(len(ping_data.msg_data)):
-        distances.append(i * mps)
-        intensities.append(ping_data.msg_data[i])
+        # Compute distances and intensities of the different samples
+        for i in range(len(ping_data.msg_data)):
+            Array_Distances[n, i] = i * mps
+            Array_Intensity[n, i] = ping_data.msg_data[i]
 
-    # Create a CSV file of distances and intensities
-    # with open('Intensities20.csv', 'w') as file:
-    #     writer = csv.writer(file)
-    #     for i in range(len(Distances)):
-    #         writer.writerow([Distances[i], Intensity[i]])
+        # Reject all samples below 0.8 meters
+        limit_low = 0.8
+        limit_high = 5.0
 
-    # Converting lists to arrays
-    Array_Distances = np.array(distances)
-    Array_Intensity = np.array(intensities)
+        # # # Calculate the difference array
+        # difference_array_low = np.absolute(Array_Distances[n, :] - limit_low)
+        # difference_array_high = np.absolute(Array_Distances[n, :] - limit_high)
 
-    # Changes made on Wednesday
-    # Below 0.75m reject all samples
-    limit_low = 0.8
-    limit_high = 4.0
+        # # Find the index of minimum element from the array
+        # limit_low_idx = difference_array_low.argmin()
+        # limit_high_idx = difference_array_high.argmin()
 
-    ## Finding the index of the 0.75m distance
+        low_cutoff_index = int(limit_low/mps)
+        high_cutoff_index = int(limit_high/mps)
 
-    # Calculate the difference array
-    difference_array_low = np.absolute(Array_Distances - limit_low)
-    difference_array_high = np.absolute(Array_Distances - limit_high)
+        # Set all intensity values at a distance below 0.75m to zero
+        Array_int = Array_Intensity[n, :]
+        for i in range(low_cutoff_index):
+            Array_int[i] = 0.0
 
-    # Find the index of minimum element from the array
-    limit_low_idx = difference_array_low.argmin()
-    limit_high_idx = difference_array_high.argmin()
+        # Set all intensity values at a distance beyond 5m to zero
+        for i in range(len(Array_int) - high_cutoff_index):
+            Array_int[high_cutoff_index + i] = 0.0
 
-    # Set all intensity values at a distance below 0.75m to zero
-    for i in range(limit_low_idx):
-        Array_Intensity[i] = 0.0
+        # Find index of the true maximum return
+        index_max[n] = Array_int.argmax()
 
-    # Find index of the true maximum return
-    index_max = Array_Intensity.argmax()
-    Array_Intensity_2 = Array_Intensity
+        # Finding max intensity and distance where it was measured
+        Intensity_max_return[n] = Array_Intensity[n, int(index_max[n])]
+        Distance_max_return[n] = Array_Distances[n, int(index_max[n])]
+
+        # Create a dictionary of objects to send to client
+    to_client = {
+        'dimensions': Array_Distances,
+        'intensities' : Array_Intensity,
+        'likely_max_index' : index_max,
+        'likely_distance' : Distance_max_return,
+        'intensity_likely_distance' : Intensity_max_return
+    }
+
+    for i in range(0,9999):
+        log_filename = "{}/Ping360_data_{}.pk".format(log_dir_path, i)
+        # print(log_filename) # DEBUG
+        if not exists(log_filename):
+            break
+
+    with open(log_filename, 'ab') as workspace:
+        pk.dump(to_client, workspace, protocol=pk.HIGHEST_PROTOCOL)
     
-    for i in range(len(Array_Intensity) - limit_high_idx):
-        Array_Intensity_2[limit_high_idx + i] = 0.0
+    print(to_client["likely_distance"])
+    print(to_client["dimensions"])
+    udp_server_socket.sendto(pk.dumps((to_client["likely_distance"], to_client["intensity_likely_distance"])), client_address)
 
-    # Find index of the second maximum
-    Array_Intensity_2[index_max] = 0.0
-    # Find second maximum
-    index_max_2 = Array_Intensity_2.argmax()
-
-    # Create a CSV file of distances and intensities cropped
-    # with open('Intensities20_cropped.csv', 'w') as file:
-    #     writer = csv.writer(file)
-    #     for i in range(len(Array_Distances)):
-    #         writer.writerow([Array_Distances[i], Array_Intensity_2[i]])
-
-    #Difference between readings
-    #difference_int = Array_Intensity[index_max] - Array_Intensity[index_max_2]
-    difference_dis = Array_Distances[index_max] - Array_Distances[index_max_2]
-
-    # Approach one: Filtering using intensity
-    # if difference_int > 10:
-    #     # Store intensity and distance of strongest return
-    #     Intensity_max_return = Array_Intensity[index_max]
-    #     Distance_max_return = Array_Distances[index_max]
-    # else:
-    #     # Store intensity and distance of strongest return
-    #     Intensity_max_return = Array_Intensity[index_max_2]
-    #     Distance_max_return = Array_Distances[index_max_2]
-
-    # Approach two: Filtering using distance
-    if difference_dis < 0:
-        # Store intensity and distance of strongest return
-        Intensity_max_return = Array_Intensity[index_max]
-        Distance_max_return = Array_Distances[index_max]
-    else:
-        # Store intensity and distance of strongest return
-        Intensity_max_return = Array_Intensity[index_max_2]
-        Distance_max_return = Array_Distances[index_max_2]
-        print('second')
-
-    #print(Array_Intensity[index_max])
-    #print(Array_Distances[index_max])
-    #print(Array_Intensity[index_max_2])
-    #print(Array_Disstances[index_max_2])
-
-    print(Intensity_max_return)
-    print(Distance_max_return)
-
-    # Create a CSV file of distances and intensities cropped
-    # with open('Final_readings.csv', 'a') as file:
-    #     writer = csv.writer(file)
-    #     writer.writerow((Intensity_max_return, Distance_max_return))
-
-
-    udp_server_socket.sendto(bytearray(struct.pack("f",  Distance_max_return)), client_address)
-    
