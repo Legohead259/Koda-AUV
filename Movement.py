@@ -1,5 +1,6 @@
-# Trying the movement command 
-
+"""
+Trying the movement command 
+"""
 
 from constants import *
 from util.commands.mav_movement import set_movement_power, set_target_depth
@@ -8,11 +9,15 @@ import socket
 import struct
 import pickle as pk
 import numpy as np
+from simple_pid import PID
 
 serverAddressPort = ("192.168.2.2", 42069)
 bufferSize = 2048
 
 UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+
+wall_controller = PID(1, 0.1, 0.05) # PID Controller for the power to maintain a distance from the wall
+wall_controller.output_limits = (-1000, 1000) # Bind the limits of the controller to the operational limits of the ROV
 
 # Configuration of sonar
 
@@ -26,6 +31,7 @@ toserver = {
     "Readings": 1200 # Number of readings Ping360 should take
 }
 
+# TODO: Update the run_ping360_service function
 def run_ping_service():
     # Sending sonar configuration to server
     UDPClientSocket.sendto(pk.dumps(toserver), serverAddressPort)
@@ -54,6 +60,25 @@ def Maintain_wall(Difference, Target = 2.0):
 
     set_movement_power(100, power, 500, 0, duration)
 
+
+def wall_follow(fwd_power: int=500, target: float=2):
+    """
+    Try to maintain a certain distance from the wall while moving forward using a PID controller for the translational power
+    """
+
+    # TODO: Input validation; fwd_power should be between (0, 1000]
+
+    # Set the controller setpoint
+    wall_controller.setpoint = target
+
+    # Get current distance from SONAR
+    curr_distance = run_ping_service()
+
+    # Update the required translational power using the PID control loop
+    side_power = wall_controller(curr_distance)
+
+    # Move the ROV
+    set_movement_power(fwd_power, side_power, 500, 0, 1.0)
 
 try:
     # Wait a heartbeat before sending commands
