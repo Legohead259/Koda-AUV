@@ -98,9 +98,9 @@ while True:
     client_address = message_address_pair[1]
 
     # Reading the dictionary sent by the client
-    N_samples = client_message.get("Number of samples")
+    N_samples = client_message.get("Nsamples")
     Angle = client_message.get("Angle")
-    logging = client_message.get("Enable Logging")
+    logging = client_message.get("Log_EN")
     ping360_range = client_message.get("Range")
     readings = client_message.get("Readings")
 
@@ -127,9 +127,9 @@ while True:
     Distance_max_return = np.zeros(N_samples)
 
     for n in range(N_samples):
-        ping_data = None
-        while ping_data is None:
-            ping_data = ping360.transmitAngle(Angle)
+        # ping_data = None
+        # while ping_data is None:
+        ping_data = ping360.transmitAngle(Angle)
 
         # Compute distances and intensities of the different samples
         for i in range(len(ping_data.msg_data)):
