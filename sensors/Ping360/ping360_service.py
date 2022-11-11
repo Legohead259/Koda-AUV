@@ -10,6 +10,7 @@ Note: On start-up there may be a slight delay between client connection and serv
 
 CHANGELOG:
  - Version 1.0.0: Initial release
+ - Version 1.1.0: Added ability for client to configure sensor data
 
 TODO:
  - Remove CSV logging features
@@ -27,7 +28,7 @@ __author__      = "Braidan Duffy, Humberto Lebron-Rivera, Omar Jebari, and Erben
 __copyright__   = "Copyright 2022"
 __credits__     = ["Braidan Duffy", "Humberto Lebron-Rivera", "Omar Jebari", "Erbene Castros"]
 __license__     = "MIT"
-__version__     = "1.0.0"
+__version__     = "1.1.0"
 __maintainer__  = "Braidan Duffy"
 __email__       = "bduffy2018@my.fit.edu"
 __status__      = "Development"
@@ -126,7 +127,9 @@ while True:
     Distance_max_return = np.zeros(N_samples)
 
     for n in range(N_samples):
-        ping_data = ping360.transmitAngle(Angle)
+        ping_data = None
+        while ping_data is None:
+            ping_data = ping360.transmitAngle(Angle)
 
         # Compute distances and intensities of the different samples
         for i in range(len(ping_data.msg_data)):
