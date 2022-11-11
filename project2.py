@@ -110,37 +110,6 @@ try:
     # Return to start
     wall_follow(target=1.0, Angle=200) # Angle sets the SONAR to be looking to front of ROV
 
-    """
-    # Sending sonar configuration to server
-    UDPClientSocket.sendto(pk.dumps(toserver), serverAddressPort)
-
-    # Loading the data sent by the server
-    msgFromServer = pk.loads(UDPClientSocket.recv(bufferSize))
-
-    # Reading the dictionary sent by the server
-    Distance = np.mean(msgFromServer[0])
-
-    #Distance = run_ping360_service()
-    Difference = wall_distance - Distance
-
-    while (np.abs(Difference) > 0.1):
-        # Controlling distance off-wall
-        Maintain_wall(Difference)
-
-        # Sending sonar configuration to server
-        UDPClientSocket.sendto(pk.dumps(toserver), serverAddressPort)
-
-        # Loading the data sent by the server
-        msgFromServer = pk.loads(UDPClientSocket.recv(bufferSize))
-
-        # Reading the dictionary sent by the server
-        Distance = np.mean(msgFromServer[0])
-
-        #Distance = run_ping360_service()
-        Difference = wall_distance - Distance
-        print(Difference)
-    """
-
     # Safe ROV after operation completes
     master.arducopter_disarm()
     master.motors_disarmed_wait()
