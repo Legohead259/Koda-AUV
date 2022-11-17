@@ -1,4 +1,5 @@
 /env
 /.vscode
 **/__pycache__
-*.pk
+data/*
+!data/cpt_testing_111222

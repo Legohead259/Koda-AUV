@@ -9,9 +9,9 @@ UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
 # Configuration of sonar
 toserver = {
-    'Number of samples' : 10,
+    'Nsamples': 100,
     'Angle' : 300, #300 Starboard 100 port
-    "Enable Logging" : False,
+    "Log_EN" : True,
     "Range" : 5, # Range SONAR should scan [m]
     "Readings": 1200 # Number of readings Ping360 should take
 }

@@ -13,15 +13,8 @@ CHANGELOG:
  - Version 1.1.0: Added ability for client to configure sensor data
 
 TODO:
- - Remove CSV logging features
  - Figure out how to properly filter max intensity accounting for reverb in signal
- - All client to configure certain parameters
-    - Angle of scanning
-    - Any Ping 360 parameters (e.g. range)
-    - If it wants the max intensity+location, min intensity+location, or all intensities+locations
-    - Minimum and maximum read distances
  - Add CLI argument parser for Ping 360 Serial (with port) or UDP (with IP address and port)
- -  
 """
 
 __author__      = "Braidan Duffy, Humberto Lebron-Rivera, Omar Jebari, and Erbene Castros"
@@ -165,7 +158,7 @@ while True:
         Intensity_max_return[n] = Array_Intensity[n, int(index_max[n])]
         Distance_max_return[n] = Array_Distances[n, int(index_max[n])]
 
-        # Create a dictionary of objects to send to client
+    # Create a dictionary of objects to send to client
     to_client = {
         'dimensions': Array_Distances,
         'intensities' : Array_Intensity,

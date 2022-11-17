@@ -39,10 +39,10 @@ def Maintain_wall(Difference, Target = 2.0):
     # Duration of action
     duration = 1.0
 
-    set_movement_power(100, power, 500, 0, duration)
+    set_movement_power(0, power, 500, 0, duration) # Debug changed fwd to 0
 
 
-def wall_follow(fwd_power: int=500, target: float=2.0, **args):
+def wall_follow(fwd_power: int=0, target: float=2.0, **args):
     """
     Try to maintain a certain distance from the wall while moving forward using a PID controller for the translational power
     """
@@ -61,12 +61,13 @@ def wall_follow(fwd_power: int=500, target: float=2.0, **args):
     curr_distance = run_ping360_service(Nsamples=3, Angle=_sonar_angle, Log_EN=False, Range=5, Readings=1200)
 
     # Update the required translational power using the PID control loop
-    side_power = wall_controller(curr_distance)
+    side_power = -int(wall_controller(curr_distance)*100)
+    print(side_power) # DEBUG
 
     # TODO: Investigate deadzone implemented here
 
     # Move the ROV
-    set_movement_power(fwd_power, int(side_power*100), 500, 0, 1.0)
+    set_movement_power(fwd_power, side_power, 500, 0, 1.0)
 
     return curr_distance
 
@@ -77,12 +78,12 @@ try:
     
     #Move sonar head into position
     print("Resetting sonar head position...")
-    run_ping360_service(Nsamples=1, Angle=300, Log_EN=False, Range=5, Readings=200) # Readings valid for 200-1200
+    run_ping360_service(Nsamples=10, Angle=300, Log_EN=False, Range=5, Readings=200) # Readings valid for 200-1200
 
     # Arm ArduSub autopilot and wait until confirmed
     print("Arming...")
-    # master.arducopter_arm()
-    # master.motors_armed_wait()
+    master.arducopter_arm()
+    master.motors_armed_wait()
 
     # Set mode to DEPTH_HOLD and submerge ROV to target depth
     print("Dive dive dive!")
@@ -90,25 +91,26 @@ try:
     # DEPTH_HOLD_MODE = master.mode_mapping()["ALT_HOLD"]
     # while not master.wait_heartbeat().custom_mode == DEPTH_HOLD_MODE: # Set DEPTH HOLD mode
     #     master.set_mode("ALT_HOLD")
-    set_target_depth(-1.0) # Set target depth
-    set_movement_power(500, 250, 500, 0, 4) # Submerge
+    # set_target_depth(-1.0) # Set target depth
+    # set_movement_power(500, 250, 500, 0, 4) # Submerge
 
     # Main execution loop
     obstacle_count = 0
     
     while (obstacle_count < 3):
-        curr_distance = wall_follow(target=2.0)
+        curr_distance = wall_follow(0, target=2.0) # Debug changed fwd to 0 
         sonar_arr = np.append(sonar_arr, curr_distance)[1:] # Add the current distance to the wall to the end of the array, and drop the first index; this will keep it N samples long while updating
         print(sonar_arr) # DEBUG
-        obstacle_count += get_barrel_belief(sonar_arr)[0] > 0.6
+        obstacle_count += get_barrel_belief(sonar_arr)[0] > 0.85
         print(obstacle_count) # DEBUG
-    
+
+    # Stop, Rotate come back
     # Stop all movement
-    set_movement_power(0, 0, 500, 0)
+    # set_movement_power(0, 0, 500, 0)
     # Rotate 180°
-    condition_yaw(180, True)
+    # condition_yaw(180, True)
     # Return to start
-    wall_follow(target=1.0, Angle=200) # Angle sets the SONAR to be looking to front of ROV
+    # wall_follow(target=1.0, Angle=200) # Angle sets the SONAR to be looking to front of ROV
 
     # Safe ROV after operation completes
     master.arducopter_disarm()
