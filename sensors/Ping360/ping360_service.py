@@ -100,7 +100,7 @@ while True:
     # Reading the dictionary sent by the client
     N_samples = client_message.get("Nsamples")
     Angle = client_message.get("Angle")
-    logging = client_message.get("Log_EN")
+    is_logging = client_message.get("Log_EN")
     ping360_range = client_message.get("Range")
     readings = client_message.get("Readings")
 
@@ -115,24 +115,22 @@ while True:
     # 100   -> Port
     # 200   -> Forward
     # 300   -> Starboard
-    ping_data = ping360.transmitAngle(Angle)
-    # distance per sample
-    mps = meters_per_sample(ping_data)
 
     # Initializing numpy arrays
-    Array_Distances = np.zeros((N_samples, len(ping_data.msg_data)))
-    Array_Intensity = np.zeros((N_samples, len(ping_data.msg_data)))
+    Array_Distances = np.zeros((N_samples, readings+1))
+    Array_Intensity = np.zeros((N_samples, readings+1))
     index_max = np.zeros(N_samples)
     Intensity_max_return = np.zeros(N_samples)
     Distance_max_return = np.zeros(N_samples)
 
     for n in range(N_samples):
-        # ping_data = None
-        # while ping_data is None:
-        ping_data = ping360.transmitAngle(Angle)
+        ping_data = None
+        while ping_data is None:
+            ping_data = ping360.transmitAngle(Angle)
+        mps = meters_per_sample(ping_data)
 
         # Compute distances and intensities of the different samples
-        for i in range(len(ping_data.msg_data)):
+        for i in range(readings):
             Array_Distances[n, i] = i * mps
             Array_Intensity[n, i] = ping_data.msg_data[i]
 
@@ -176,16 +174,18 @@ while True:
         'intensity_likely_distance' : Intensity_max_return
     }
 
-    for i in range(0,9999):
-        log_filename = "{}/Ping360_data_{}.pk".format(log_dir_path, i)
-        # print(log_filename) # DEBUG
-        if not exists(log_filename):
-            break
+    if is_logging:
+        for i in range(0,9999):
+            log_filename = "{}/Ping360_data_{}.pk".format(log_dir_path, i)
+            # print(log_filename) # DEBUG
+            if not exists(log_filename):
+                break
 
-    with open(log_filename, 'ab') as workspace:
-        pk.dump(to_client, workspace, protocol=pk.HIGHEST_PROTOCOL)
+        with open(log_filename, 'ab') as workspace:
+            pk.dump(to_client, workspace, protocol=pk.HIGHEST_PROTOCOL)
     
     print(to_client["likely_distance"])
     print(to_client["dimensions"])
     udp_server_socket.sendto(pk.dumps((to_client["likely_distance"], to_client["intensity_likely_distance"])), client_address)
+
 
