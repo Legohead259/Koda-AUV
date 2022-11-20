@@ -30,10 +30,11 @@ def wall_follow(target: float=2.0, **kwargs):
     wall_controller.setpoint = target
 
     # Get current distance from SONAR
-    curr_distance = run_ping1D_service(n_samples=_n_samples, log_enable=_log_en)
+    curr_distance, confidence = run_ping1D_service(n_samples=_n_samples, log_enable=_log_en)
+    print(curr_distance)
 
     # Update the required translational power using the PID control loop
-    power = -int(wall_controller(curr_distance)*100)
+    power = int(wall_controller(curr_distance))*100
     print(power) # DEBUG
 
     # TODO: Investigate deadzone implemented here
