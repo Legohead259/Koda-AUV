@@ -11,21 +11,24 @@ Note: On start-up there may be a slight delay between client connection and serv
 CHANGELOG:
  - Version 1.0.0: Initial release
  - Version 1.1.0: Added ability for client to configure sensor data
+ - Version 1.1.1: Minor tweaks to API format; Fixed 'NoneType' error for Ping360 data
 
 TODO:
  - Figure out how to properly filter max intensity accounting for reverb in signal
  - Add CLI argument parser for Ping 360 Serial (with port) or UDP (with IP address and port)
+ - Specify timeout for receiving Ping360 data
 """
 
 __author__      = "Braidan Duffy, Humberto Lebron-Rivera, Omar Jebari, and Erbene Castros"
 __copyright__   = "Copyright 2022"
 __credits__     = ["Braidan Duffy", "Humberto Lebron-Rivera", "Omar Jebari", "Erbene Castros"]
 __license__     = "MIT"
-__version__     = "1.1.0"
+__version__     = "1.1.1"
 __maintainer__  = "Braidan Duffy"
 __email__       = "bduffy2018@my.fit.edu"
 __status__      = "Development"
 
+import datetime
 from brping import Ping360
 import numpy as np
 import socket
@@ -50,6 +53,7 @@ localPort = 42069
 bufferSize = 2048
 log_dir_path = "/home/pi/Koda-AUV/Koda-AUV/data/" + date.today().strftime("%m%d%y") # Create string for log directory in MMDDYY format e.g. 102122
 log_filename = ""
+last_log_number = 0
 
 udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM) # Create datagram socket
 udp_server_socket.bind((localIP, localPort)) # Bind to address and port
@@ -91,15 +95,15 @@ while True:
     client_address = message_address_pair[1]
 
     # Reading the dictionary sent by the client
-    N_samples = client_message.get("Nsamples")
-    Angle = client_message.get("Angle")
-    is_logging = client_message.get("Log_EN")
-    ping360_range = client_message.get("Range")
-    readings = client_message.get("Readings")
+    n_samples = client_message.get("n_samples") if "n_samples" in client_message else 1
+    angle = client_message.get("angle") if "angle" in client_message else 300
+    is_logging = client_message.get("log_en") if "log_en" in client_message else False
+    range = client_message.get("range") if "range" in client_message else 5
+    readings = client_message.get("readings") if "readings" in client_message else 1200
 
     # Configure Ping360
     ping360.set_number_of_samples(int(readings))
-    set_ping360_range(ping360_range)
+    set_ping360_range(range)
 
     # Get data from the Ping 360
     # Transmission angle is in Gradians with 0 being forward (direction of penetrator) and increasing to 399 clockwise
@@ -108,77 +112,68 @@ while True:
     # 100   -> Port
     # 200   -> Forward
     # 300   -> Starboard
+    ping_data = ping360.transmitAngle(angle)
+    mps = meters_per_sample(ping_data) # Distance per sample
 
     # Initializing numpy arrays
-    Array_Distances = np.zeros((N_samples, readings+1))
-    Array_Intensity = np.zeros((N_samples, readings+1))
-    index_max = np.zeros(N_samples)
-    Intensity_max_return = np.zeros(N_samples)
-    Distance_max_return = np.zeros(N_samples)
+    distance_mat = np.zeros((n_samples, len(ping_data.msg_data)))
+    intensity_mat = np.zeros((n_samples, len(ping_data.msg_data)))
+    index_max_arr = np.zeros(n_samples)
+    max_intensity_arr = np.zeros(n_samples)
+    max_distance_arr = np.zeros(n_samples)
 
-    for n in range(N_samples):
-        ping_data = None
-        while ping_data is None:
-            ping_data = ping360.transmitAngle(Angle)
-        mps = meters_per_sample(ping_data)
-
+    for n in range(n_samples):
+        ping_data = ping360.transmitAngle(angle)
+        if not ping_data: # Check for valid response; if none received, ignore and continue with loop
+            continue
+            
         # Compute distances and intensities of the different samples
-        for i in range(readings):
-            Array_Distances[n, i] = i * mps
-            Array_Intensity[n, i] = ping_data.msg_data[i]
+        for i in range(len(ping_data.msg_data)):
+            distance_mat[n, i] = i * mps
+            intensity_mat[n, i] = ping_data.msg_data[i]
 
         # Reject all samples below 0.8 meters
-        limit_low = 0.8
-        limit_high = 5.0
+        LIMIT_LOW = 0.8
+        LIMIT_HIGH = range
 
-        # # # Calculate the difference array
-        # difference_array_low = np.absolute(Array_Distances[n, :] - limit_low)
-        # difference_array_high = np.absolute(Array_Distances[n, :] - limit_high)
+        LOW_CUTOFF_INDEX = int(LIMIT_LOW/mps)
+        HIGH_CUTOFF_INDEX = int(LIMIT_HIGH/mps)
 
-        # # Find the index of minimum element from the array
-        # limit_low_idx = difference_array_low.argmin()
-        # limit_high_idx = difference_array_high.argmin()
+        # Set all intensity values at a distance below LIMIT_LOW to 0
+        intensity_arr = intensity_mat[n, :]
+        for i in range(LOW_CUTOFF_INDEX):
+            intensity_arr[i] = 0.0
 
-        low_cutoff_index = int(limit_low/mps)
-        high_cutoff_index = int(limit_high/mps)
-
-        # Set all intensity values at a distance below 0.75m to zero
-        Array_int = Array_Intensity[n, :]
-        for i in range(low_cutoff_index):
-            Array_int[i] = 0.0
-
-        # Set all intensity values at a distance beyond 5m to zero
-        for i in range(len(Array_int) - high_cutoff_index):
-            Array_int[high_cutoff_index + i] = 0.0
+        # Set all intensity values at a distance beyond LIMIT_HIGH to 0
+        for i in range(len(intensity_arr) - HIGH_CUTOFF_INDEX):
+            intensity_arr[HIGH_CUTOFF_INDEX + i] = 0.0
 
         # Find index of the true maximum return
-        index_max[n] = Array_int.argmax()
+        index_max_arr[n] = intensity_arr.argmax()
 
         # Finding max intensity and distance where it was measured
-        Intensity_max_return[n] = Array_Intensity[n, int(index_max[n])]
-        Distance_max_return[n] = Array_Distances[n, int(index_max[n])]
+        max_intensity_arr[n] = intensity_mat[n, int(index_max_arr[n])]
+        max_distance_arr[n] = distance_mat[n, int(index_max_arr[n])]
 
-    # Create a dictionary of objects to send to client
+    # Preparing a dictionary for logging/transmission
     to_client = {
-        'dimensions': Array_Distances,
-        'intensities' : Array_Intensity,
-        'likely_max_index' : index_max,
-        'likely_distance' : Distance_max_return,
-        'intensity_likely_distance' : Intensity_max_return
+        "timestamp": datetime.now().microsecond / 1000,
+        'distance_matrix': distance_mat,
+        'intensities_matrix' : intensity_mat,
+        'max_index' : index_max_arr,
+        'distance' : max_distance_arr,
+        'intensity' : max_intensity_arr
     }
 
     if is_logging:
-        for i in range(0,9999):
-            log_filename = "{}/Ping360_data_{}.pk".format(log_dir_path, i)
-            # print(log_filename) # DEBUG
-            if not exists(log_filename):
-                break
-
-        with open(log_filename, 'ab') as workspace:
+        log_filename = "{}/Ping360_data_{}.pk".format(log_dir_path, last_log_number)
+        # print(log_filename) # DEBUG
+        with open(log_filename, 'wb') as workspace:
             pk.dump(to_client, workspace, protocol=pk.HIGHEST_PROTOCOL)
+        last_log_number = last_log_number + 1
     
-    print(to_client["likely_distance"])
-    print(to_client["dimensions"])
-    udp_server_socket.sendto(pk.dumps((to_client["likely_distance"], to_client["intensity_likely_distance"])), client_address)
+    print(to_client["distance"]) # Debug
+    print(to_client["dimensions"]) # Debug
+    udp_server_socket.sendto(pk.dumps((to_client["distance"], to_client["intensity"])), client_address)
 
 
