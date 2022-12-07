@@ -3,3 +3,4 @@
 **/__pycache__
 data/*
 !data/cpt_testing_111222
+!data/cpt_testing_120622

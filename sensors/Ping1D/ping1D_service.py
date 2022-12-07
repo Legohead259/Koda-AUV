@@ -23,12 +23,13 @@ from brping import Ping1D
 import socket
 import pickle as pk
 import numpy as np
-import datetime
+from datetime import datetime, date
+import time
 
 # Instantiation
 ping1D = Ping1D()
 
-ping1D.connect_serial("/dev/tty/AMA3", 115200)
+ping1D.connect_udp("0.0.0.0", 9090)
 
 if ping1D.initialize() is False:
     print("Failed to initialize Ping!")
@@ -38,7 +39,7 @@ if ping1D.initialize() is False:
 localIP = "0.0.0.0"
 localPort = 42070
 bufferSize = 2048
-log_dir_path = "/home/pi/Koda-AUV/Koda-AUV/data/" + datetime.date.today().strftime("%m%d%y") # Create string for log directory in MMDDYY format e.g. 102122
+log_dir_path = "/home/pi/Koda-AUV/Koda-AUV/data/" + date.today().strftime("%m%d%y") # Create string for log directory in MMDDYY format e.g. 102122
 log_filename = ""
 
 udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM) # Create datagram socket
@@ -74,7 +75,7 @@ while True:
 
     # Configure Ping1D
     # TODO: Expand configuration options
-    ping1D.set_range(range)
+    # ping1D.set_range(range)
     ping1D.set_speed_of_sound(speed_of_sound)
 
     # Create data arrays
@@ -85,14 +86,14 @@ while True:
     for n in range(n_samples):
         ping_data = ping1D.get_distance()
         if ping_data:
-            distance_arr = np.append(distance_arr, ping_data["distance"])
-            confidence_arr = np.append(distance_arr, ping_data["confidence"])
+            distance_arr = np.append(distance_arr, ping_data["distance"] / 1E3)
+            confidence_arr = np.append(confidence_arr, ping_data["confidence"])
         else:
             continue
     
     # Prepare data for transmission/logging
     to_client = {
-        "timestamp": datetime.now().microsecond / 1000,
+        "timestamp": datetime.utcnow(),
         "distance": np.mean(distance_arr),
         "confidence": np.mean(confidence_arr)
     }
@@ -102,10 +103,10 @@ while True:
             pk.dump(to_client, logfile, protocol=pk.HIGHEST_PROTOCOL)
 
     print("[%s] Distance: %s\tConfidence: %s%%" % (
-        datetime.fromtimestamp(to_client["timestamp"]),
+        to_client["timestamp"],
         to_client["distance"], 
         to_client["confidence"]))
     
     # Send data to client
-    udp_server_socket.sendto(pk.dumps(to_client, client_address))
+    udp_server_socket.sendto(pk.dumps(to_client), client_address)
 
