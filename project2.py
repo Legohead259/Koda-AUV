@@ -78,7 +78,7 @@ try:
     
     #Move sonar head into position
     print("Resetting sonar head position...")
-    run_ping360_service(Nsamples=10, Angle=300, Log_EN=False, Range=5, Readings=200) # Readings valid for 200-1200
+    run_ping360_service(n_samples=10, angle=300, log_en=False, range=5, readings=200) # Readings valid for 200-1200
 
     # Arm ArduSub autopilot and wait until confirmed
     print("Arming...")
@@ -97,8 +97,10 @@ try:
     # Main execution loop
     obstacle_count = 0
     
-    while (obstacle_count < 3):
-        curr_distance = wall_follow(0, target=2.0) # Debug changed fwd to 0 
+    while (obstacle_count < 4):
+        # curr_distance = wall_follow(0, target=2.0) # Debug changed fwd to 0 
+        set_movement_power(200, 0, 500, 0, 1.0)
+        curr_distance = run_ping360_service(n_samples=10, angle=300, log_en=False, range=5, readings=1200)
         sonar_arr = np.append(sonar_arr, curr_distance)[1:] # Add the current distance to the wall to the end of the array, and drop the first index; this will keep it N samples long while updating
         print(sonar_arr) # DEBUG
         obstacle_count += get_barrel_belief(sonar_arr)[0] > 0.85

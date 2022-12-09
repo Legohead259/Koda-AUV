@@ -2,9 +2,9 @@ import numpy as np
 from pgmpy.inference import VariableElimination
 from . import reader, model
 
-SM_CUTOFF= 0.80
-ML_CUTOFF = 1.2
-L_CUTOFF = 3
+SM_CUTOFF= 1.2 # 0.80
+ML_CUTOFF = 2.3 
+L_CUTOFF = 3.0
 
 
 def convert_to_label(x):

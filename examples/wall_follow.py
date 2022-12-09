@@ -4,7 +4,7 @@ sys.path.insert(0, "../")
 from simple_pid import PID
 from constants import *
 from util.commands.mav_movement import set_movement_power
-from util.tasks.ping_handlers import run_ping1D_service
+from util.tasks.ping_handlers import run_ping1D_service, run_ping360_service
 from pymavlink import mavutil
 import numpy as np
 import math
@@ -21,7 +21,7 @@ def wall_follow(target: float=2.0, **kwargs):
 
     # TODO: Continue kwarg implementation for all ping parameters
     _sonar_angle = kwargs["angle"] if "angle" in kwargs else 300
-    _n_samples = kwargs["n_samples"] if "n_samples" in kwargs else 1
+    _n_samples = kwargs["n_samples"] if "n_samples" in kwargs else 5
     _log_en = kwargs["log_en"] if "log_en" in kwargs else False
     
     # TODO: Input validation; fwd_power should be between (0, 1000]
@@ -30,8 +30,9 @@ def wall_follow(target: float=2.0, **kwargs):
     wall_controller.setpoint = target
 
     # Get current distance from SONAR
-    curr_distance, confidence = run_ping1D_service(n_samples=_n_samples, log_enable=_log_en)
-    print(curr_distance)
+    # curr_distance, confidence = run_ping1D_service(n_samples=_n_samples, log_enable=_log_en)
+    curr_distance = run_ping360_service(n_samples=_n_samples)
+    print(curr_distance) # DEBUG
 
     # Update the required translational power using the PID control loop
     power = int(wall_controller(curr_distance))*100
@@ -53,8 +54,8 @@ try:
 
     # Arm ArduSub autopilot and wait until confirmed
     print("Arming...")
-    master.arducopter_arm()
-    master.motors_armed_wait()
+    # master.arducopter_arm()
+    # master.motors_armed_wait()
 
     # Set mode to DEPTH_HOLD and submerge ROV to target depth
     print("Dive dive dive!")
