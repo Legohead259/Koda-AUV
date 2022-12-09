@@ -33,7 +33,7 @@ from brping import Ping360
 import numpy as np
 import socket
 import pickle as pk
-from datetime import date
+from datetime import date, datetime
 from os.path import exists
 
 # Ping initialization
@@ -63,14 +63,14 @@ udp_server_socket.bind((localIP, localPort)) # Bind to address and port
 # =========================
 
 
-def set_ping360_range(range=2, v_sound=1480):
+def set_ping360_range(range=2, v_sound=1475):
     """
     """
     _sample_period = int(range/(v_sound * ping360.get_device_data()["number_of_samples"] * 12.5e-9))
     return ping360.set_sample_period(_sample_period)
 
 
-def meters_per_sample(ping_message, v_sound=1480):
+def meters_per_sample(ping_message, v_sound=1475):
     """
     Returns the target distance per sample, in meters. 
     
@@ -98,12 +98,12 @@ while True:
     n_samples = client_message.get("n_samples") if "n_samples" in client_message else 1
     angle = client_message.get("angle") if "angle" in client_message else 300
     is_logging = client_message.get("log_en") if "log_en" in client_message else False
-    range = client_message.get("range") if "range" in client_message else 5
+    rango = client_message.get("range") if "range" in client_message else 5
     readings = client_message.get("readings") if "readings" in client_message else 1200
 
     # Configure Ping360
     ping360.set_number_of_samples(int(readings))
-    set_ping360_range(range)
+    set_ping360_range(rango)
 
     # Get data from the Ping 360
     # Transmission angle is in Gradians with 0 being forward (direction of penetrator) and increasing to 399 clockwise
@@ -134,7 +134,7 @@ while True:
 
         # Reject all samples below 0.8 meters
         LIMIT_LOW = 0.8
-        LIMIT_HIGH = range
+        LIMIT_HIGH = rango
 
         LOW_CUTOFF_INDEX = int(LIMIT_LOW/mps)
         HIGH_CUTOFF_INDEX = int(LIMIT_HIGH/mps)
@@ -173,7 +173,7 @@ while True:
         last_log_number = last_log_number + 1
     
     print(to_client["distance"]) # Debug
-    print(to_client["dimensions"]) # Debug
+    # print(to_client["dimensions"]) # Debug
     udp_server_socket.sendto(pk.dumps((to_client["distance"], to_client["intensity"])), client_address)
 
 
